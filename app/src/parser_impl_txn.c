@@ -60,13 +60,13 @@ static const char *unknown_vp = "Unknown VP hash";
     }
 
 static const tokens_t nam_tokens[] = {
-    NAM_TOKEN("tnam1qye0m4890at9r92pfyf3948fpzgryfzweg2v95fs", "NAM "),
-    NAM_TOKEN("tnam1qx3jyxy292rlqu40syq3nfnlgtsusyewkcuyddhp", "BTC "),
-    NAM_TOKEN("tnam1q8dug9yu52tzz3mmn976574fj7yfl4yj0qynxvrk", "ETH "),
-    NAM_TOKEN("tnam1q8d2xskmexg9j9yvfda7cwy48vy8wrmwsuw5lxtv", "DOT "),
-    NAM_TOKEN("tnam1q8qy9puaq5plu2csa4gk3l2fpl5vc4r2ccxqjhqk", "Schnitzel "),
-    NAM_TOKEN("tnam1q9zsxkpuk4sle4lhfcfnu5fdep8fy3n2aqufyc97", "Apfel "),
-    NAM_TOKEN("tnam1qyev25082t47tqxmj4gd4c07d3pm9t6rnc7jgwyq", "Kartoffel "),
+    NAM_TOKEN("tnam1q8vyjrk5n30vfphaa26v7prkh8mjv4rfd5fkxh80", "NAM "),
+    NAM_TOKEN("tnam1q9hmjw2qepep49lgmvlnf6h8qr868wkjrshskhhf", "BTC "),
+    NAM_TOKEN("tnam1qypy95y62shwzvmk80y9sdw9s2xy5fwvy5p0anga", "ETH "),
+    NAM_TOKEN("tnam1q9t3x5ghmlk63s3uwr4g0ft4dnz28mmwlvnsqpwf", "DOT "),
+    NAM_TOKEN("tnam1q96cj4tz7gwa07tggpy28ya5teujehtchswt8fec", "Schnitzel "),
+    NAM_TOKEN("tnam1q84m0kkx8u6zq79z4cg88n33v2p8c8urm5cdsr2g", "Apfel "),
+    NAM_TOKEN("tnam1q9y2z3wv6gfu55dt3mxkwaex78v8yhxt4uvz5qzx", "Kartoffel "),
 };
 
 #define PREFIX_IMPLICIT 0
