@@ -864,6 +864,8 @@ parser_error_t readHeader(parser_context_t *ctx, parser_tx_t *v) {
     CHECK_ERROR(checkTag(ctx, 0x01))
     // Fee.amount
     CHECK_ERROR(readUint256(ctx, &v->transaction.header.fees.amount))
+    // Fee.amount denomination
+    CHECK_ERROR(readByte(ctx, &v->transaction.header.fees.amount_denom))
 
     // Fee.address
     v->transaction.header.fees.address.len = ADDRESS_LEN_BYTES;

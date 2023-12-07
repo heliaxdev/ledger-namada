@@ -232,6 +232,7 @@ typedef struct {
 typedef struct {
     bytes_t address;
     uint256_t amount;
+    uint8_t amount_denom;
     const char *symbol;
 } fees_t;
 
