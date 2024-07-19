@@ -1106,7 +1106,6 @@ static parser_error_t printIBCTxn( const parser_context_t *ctx,
                                     char *outKey, uint16_t outKeyLen,
                                     char *outVal, uint16_t outValLen,
                                     uint8_t pageIdx, uint8_t *pageCount) {
-
     const tx_ibc_t *ibc = &ctx->tx_obj->ibc;
     const bool hasMemo = ctx->tx_obj->transaction.header.memoSection != NULL;
     if (displayIdx >= 8 && !hasMemo) {
@@ -1131,7 +1130,7 @@ static parser_error_t printIBCTxn( const parser_context_t *ctx,
             break;
         case 3:
             snprintf(outKey, outKeyLen, "Token");
-            CHECK_ERROR(joinStrings(ibc->token_amount, ibc->token_address, " ", outVal, outValLen, pageIdx, pageCount))
+            CHECK_ERROR(joinStrings(ibc->token_amount, ibc->trace_path, ibc->trace_path_len, ibc->base_denom, " ", outVal, outValLen, pageIdx, pageCount))
             break;
 
         case 4:

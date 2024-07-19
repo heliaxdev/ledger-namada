@@ -763,13 +763,10 @@ static parser_error_t readBridgePoolTransfer(const bytes_t *data, tx_bridge_pool
 }
 
 __Z_INLINE parser_error_t readTimestamp(parser_context_t *ctx, timestamp_t *timestamp) {
-    uint8_t consumed = 0;
     uint64_t tmp = 0;
 
-    CHECK_ERROR(checkTag(ctx, 0x38))
     const uint64_t timestampSize = ctx->bufferLen - ctx->offset;
-    decodeLEB128(ctx->buffer + ctx->offset, timestampSize, &consumed, &tmp);
-    ctx->offset += consumed;
+    CHECK_ERROR(readUint64(ctx, &tmp))
 
     const uint32_t e9 = 1000000000;
     timestamp->millis = tmp / e9;
@@ -781,81 +778,99 @@ __Z_INLINE parser_error_t readTimestamp(parser_context_t *ctx, timestamp_t *time
 static parser_error_t readIBCTxn(const bytes_t *data, parser_tx_t *v) {
     parser_context_t ctx = {.buffer = data->ptr, .bufferLen = data->len, .offset = 0, .tx_obj = NULL};
 
+    // Read the message type: 1 for Transfer, 2 for NftTransfer
+    CHECK_ERROR(readByte(&ctx, &v->ibc.message_type))
+
     uint32_t tmpValue;
     uint16_t tmpFieldLen = 0;
-    CHECK_ERROR(readUint32(&ctx, &tmpValue));
     // Read port id
-    CHECK_ERROR(checkTag(&ctx, 0x0A))
-    CHECK_ERROR(readFieldSizeU16(&ctx, &v->ibc.port_id.len))
+    CHECK_ERROR(readUint32(&ctx, &tmpValue))
+    if (tmpValue > UINT16_MAX) {
+        return parser_value_out_of_range;
+    }
+    v->ibc.port_id.len = tmpValue;
     CHECK_ERROR(readBytes(&ctx, &v->ibc.port_id.ptr, v->ibc.port_id.len))
 
     // Read channel id
-    CHECK_ERROR(checkTag(&ctx, 0x12))
-    CHECK_ERROR(readFieldSizeU16(&ctx, &v->ibc.channel_id.len))
+    CHECK_ERROR(readUint32(&ctx, &tmpValue))
+    if (tmpValue > UINT16_MAX) {
+        return parser_value_out_of_range;
+    }
+    v->ibc.channel_id.len = tmpValue;
     CHECK_ERROR(readBytes(&ctx, &v->ibc.channel_id.ptr, v->ibc.channel_id.len))
 
-    ////// Packed data
+    ////// Packet data
     // Read token address
-    CHECK_ERROR(checkTag(&ctx, 0x1A))
-    CHECK_ERROR(readFieldSizeU16(&ctx, &tmpFieldLen))
+    CHECK_ERROR(readUint32(&ctx, &v->ibc.trace_path_len))
+    v->ibc.trace_path.ptr = ctx.buffer + ctx.offset;
+    for(uint32_t i = 0; i < v->ibc.trace_path_len; i++) {
+        CHECK_ERROR(readUint32(&ctx, &tmpValue))
+        if (tmpValue > UINT16_MAX) {
+            return parser_value_out_of_range;
+        }
+        bytes_t port_id;
+        port_id.len = tmpValue;
+        CHECK_ERROR(readBytes(&ctx, &port_id.ptr, port_id.len))
+        CHECK_ERROR(readUint32(&ctx, &tmpValue))
+        if (tmpValue > UINT16_MAX) {
+            return parser_value_out_of_range;
+        }
+        bytes_t channel_id;
+        channel_id.len = tmpValue;
+        CHECK_ERROR(readBytes(&ctx, &channel_id.ptr, channel_id.len))
+    }
+    v->ibc.trace_path.len = ctx.buffer + ctx.offset - v->ibc.trace_path.ptr;
 
-    CHECK_ERROR(checkTag(&ctx, 0x0A))
-    CHECK_ERROR(readFieldSizeU16(&ctx, &v->ibc.token_address.len))
-    CHECK_ERROR(readBytes(&ctx, &v->ibc.token_address.ptr, v->ibc.token_address.len))
+    // Read base denomination
+    CHECK_ERROR(readUint32(&ctx, &tmpValue))
+    if (tmpValue > UINT16_MAX) {
+        return parser_value_out_of_range;
+    }
+    v->ibc.base_denom.len = tmpValue;
+    CHECK_ERROR(readBytes(&ctx, &v->ibc.base_denom.ptr, v->ibc.base_denom.len))
 
     // Read token amount
-    CHECK_ERROR(checkTag(&ctx, 0x12))
-    CHECK_ERROR(readFieldSizeU16(&ctx, &v->ibc.token_amount.len))
+    v->ibc.token_amount.len = 32;
     CHECK_ERROR(readBytes(&ctx, &v->ibc.token_amount.ptr, v->ibc.token_amount.len))
 
     // Read sender
-    CTX_CHECK_AVAIL(&ctx, 1);
-    if (*(ctx.buffer + ctx.offset) == 0x22) {
-        CHECK_ERROR(checkTag(&ctx, 0x22))
-        CHECK_ERROR(readFieldSizeU16(&ctx, &v->ibc.sender_address.len))
-        CHECK_ERROR(readBytes(&ctx, &v->ibc.sender_address.ptr, v->ibc.sender_address.len))
+    CHECK_ERROR(readUint32(&ctx, &tmpValue))
+    if (tmpValue > UINT16_MAX) {
+        return parser_value_out_of_range;
     }
+    v->ibc.sender_address.len = tmpValue;
+    CHECK_ERROR(readBytes(&ctx, &v->ibc.sender_address.ptr, v->ibc.sender_address.len))
 
     // Read receiver
-    CTX_CHECK_AVAIL(&ctx, 1);
-    if (*(ctx.buffer + ctx.offset) == 0x2A) {
-        CHECK_ERROR(checkTag(&ctx, 0x2A))
-        CHECK_ERROR(readFieldSizeU16(&ctx, &v->ibc.receiver.len))
-        CHECK_ERROR(readBytes(&ctx, &v->ibc.receiver.ptr, v->ibc.receiver.len))
+    CHECK_ERROR(readUint32(&ctx, &tmpValue))
+    if (tmpValue > UINT16_MAX) {
+        return parser_value_out_of_range;
     }
+    v->ibc.receiver.len = tmpValue;
+    CHECK_ERROR(readBytes(&ctx, &v->ibc.receiver.ptr, v->ibc.receiver.len))
+
+    // Read memo
+    CHECK_ERROR(readUint32(&ctx, &tmpValue))
+    if (tmpValue > UINT16_MAX) {
+        return parser_value_out_of_range;
+    }
+    bytes_t memo;
+    memo.len = tmpValue;
+    CHECK_ERROR(readBytes(&ctx, &memo.ptr, memo.len))
     ////////////////
 
     // Read timeout height
-    CHECK_ERROR(checkTag(&ctx, 0x32))
     CHECK_ERROR(readByte(&ctx, &v->ibc.timeout_height_type))
 
-    if (v->ibc.timeout_height_type > 0) {
-        uint8_t consumed = 0;
-        uint64_t tmp = 0;
-
-        // Read 0x08
-        CHECK_ERROR(checkTag(&ctx, 0x08))
-        const uint64_t remainingBytes = ctx.bufferLen - ctx.offset;
-        decodeLEB128(ctx.buffer + ctx.offset, remainingBytes, &consumed, &tmp);
-        v->ibc.revision_number = tmp;
-        ctx.offset += consumed;
-
-        CHECK_ERROR(checkTag(&ctx, 0x10))
-        const uint64_t remainingBytes2 = ctx.bufferLen - ctx.offset;
-        decodeLEB128(ctx.buffer + ctx.offset, remainingBytes2, &consumed, &tmp);
-        v->ibc.revision_height = tmp;
-        ctx.offset += consumed;
+    if (v->ibc.timeout_height_type == 1) {
+        CHECK_ERROR(readUint64(&ctx, &v->ibc.revision_number))
+        CHECK_ERROR(readUint64(&ctx, &v->ibc.revision_height))
+    } else if (v->ibc.timeout_height_type != 0) {
+        return parser_value_out_of_range;
     }
     
     // Read timeout timestamp
     CHECK_ERROR(readTimestamp(&ctx, &v->ibc.timeout_timestamp))
-
-    if (ctx.offset < ctx.bufferLen) {
-        CHECK_ERROR(checkTag(&ctx, 0x42))
-        bytes_t  tmpBytes = {0};
-        CHECK_ERROR(readFieldSizeU16(&ctx, &tmpBytes.len))
-        CHECK_ERROR(readBytes(&ctx, &tmpBytes.ptr, tmpBytes.len))
-    }
 
     // Read byte indicating presence of Transfer
     uint8_t has_transfer;
@@ -864,6 +879,7 @@ static parser_error_t readIBCTxn(const bytes_t *data, parser_tx_t *v) {
     if (ctx.offset != ctx.bufferLen) {
         return parser_unexpected_characters;
     }
+    
     return parser_ok;
 }
 

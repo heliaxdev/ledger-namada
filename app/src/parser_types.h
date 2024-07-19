@@ -333,9 +333,9 @@ typedef struct {
 } tx_transfer_t;
 
 typedef struct {
+    uint8_t message_type;
     bytes_t port_id;
     bytes_t channel_id;
-    bytes_t token_address;
     bytes_t token_amount;
     bytes_t sender_address;
     bytes_t receiver;
@@ -343,6 +343,9 @@ typedef struct {
     uint64_t revision_number;
     uint64_t revision_height;
     timestamp_t timeout_timestamp;
+    uint32_t trace_path_len;
+    bytes_t trace_path;
+    bytes_t base_denom;
 } tx_ibc_t;
 
 typedef struct {

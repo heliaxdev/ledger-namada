@@ -175,13 +175,74 @@ parser_error_t printPublicKey( const bytes_t *pubkey,
     return parser_ok;
 }
 
-parser_error_t joinStrings(const bytes_t first, const bytes_t second, const char *separator,
+parser_error_t extractPortChannel(bytes_t second_bytes, uint32_t idx, bytes_t *port_id, bytes_t *channel_id) {
+    parser_context_t tmpCtx = { .buffer = second_bytes.ptr,
+                                    .bufferLen = second_bytes.len,
+                                    .offset = 0};
+    for (uint32_t i = 0; i <= idx; i++) {
+        uint32_t tmpValue;
+        CHECK_ERROR(readUint32(&tmpCtx, &tmpValue))
+        if (tmpValue > UINT16_MAX) {
+            return parser_value_out_of_range;
+        }
+        port_id->len = tmpValue;
+        CHECK_ERROR(readBytes(&tmpCtx, &port_id->ptr, port_id->len))
+        
+        CHECK_ERROR(readUint32(&tmpCtx, &tmpValue))
+        if (tmpValue > UINT16_MAX) {
+            return parser_value_out_of_range;
+        }
+        channel_id->len = tmpValue;
+        CHECK_ERROR(readBytes(&tmpCtx, &channel_id->ptr, channel_id->len))
+    }
+    return parser_ok;
+}
+
+parser_error_t joinStrings(const bytes_t first_bytes, bytes_t second_bytes, uint32_t trace_path_len, bytes_t base_denom, const char *separator,
                             char *outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount) {
 
-    if (first.ptr == NULL || second.ptr == NULL || outVal == NULL || pageCount == NULL ||
+    if (first_bytes.ptr == NULL || second_bytes.ptr == NULL || outVal == NULL || pageCount == NULL ||
         outValLen <= 1) {
         return parser_unexpected_error;
     }
+
+    // Convert first_bytes from big-endian to a little-endian array
+    uint8_t first_bytes_le_array[32];
+    for (uint8_t i = 0; i < 4; i++) {
+        // Reverse the current word
+        for (uint8_t j = 0; j < 8; j++) {
+            first_bytes_le_array[8*i + j] = first_bytes.ptr[8*i + 7 - j];
+        }
+    }
+    // Convert first_bytes_le_array to a little endian bytes pointer
+    bytes_t first_bytes_le = {.ptr = first_bytes_le_array, .len = 32};
+    char strAmount[79] = {0};
+    // Convert a little endian bytes pointer to a string
+    CHECK_ERROR(bigint_to_str(&first_bytes_le, false, strAmount, sizeof(strAmount), 0, pageCount))
+    bytes_t first = {.ptr = strAmount, .len = strlen(strAmount)};
+
+    uint8_t second_bytes_array[1024] = {0};
+    uint32_t second_bytes_offset = 0;
+    // Construct the token string
+    for (uint32_t i = 0; i < trace_path_len; i++) {
+        bytes_t port_id;
+        bytes_t channel_id;
+        // Extract the port and channel starting from the back
+        CHECK_ERROR(extractPortChannel(second_bytes, trace_path_len - i - 1, &port_id, &channel_id))
+        // Append the port ID
+        MEMCPY(second_bytes_array + second_bytes_offset, port_id.ptr, port_id.len);
+        second_bytes_offset += port_id.len;
+        second_bytes_array[second_bytes_offset++] = '/';
+        // Append the channel ID
+        MEMCPY(second_bytes_array + second_bytes_offset, channel_id.ptr, channel_id.len);
+        second_bytes_offset += channel_id.len;
+        second_bytes_array[second_bytes_offset++] = '/';
+    }
+    // Append the base denomination
+    MEMCPY(second_bytes_array + second_bytes_offset, base_denom.ptr, base_denom.len);
+    second_bytes_offset += base_denom.len;
+
+    bytes_t second = {.ptr = second_bytes_array, .len = second_bytes_offset};
 
     // Calculate the total length needed including the separator and null terminator
     uint32_t totalLength = first.len + strlen(separator) + second.len + 1; // +1 for null terminator

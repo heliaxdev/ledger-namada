@@ -58,7 +58,7 @@ parser_error_t printPublicKey(const bytes_t *pubkey,
                               char *outVal, uint16_t outValLen,
                               uint8_t pageIdx, uint8_t *pageCount);
 
-parser_error_t joinStrings(const bytes_t first, const bytes_t second, const char *separator,
+  parser_error_t joinStrings(const bytes_t first, const bytes_t second, uint32_t trace_path_len, bytes_t base_denom, const char *separator,
                             char * outVal, uint16_t outValLen, uint8_t pageIdx, uint8_t *pageCount);
 
 parser_error_t printProposal( const tx_init_proposal_t *initProposal, uint8_t displayIdx,
