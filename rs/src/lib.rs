@@ -32,15 +32,16 @@ pub use ledger_zondax_generic::LedgerAppError;
 mod params;
 use params::SALT_LEN;
 pub use params::{
-    InstructionCode, ADDRESS_LEN, CLA, ED25519_PUBKEY_LEN, PK_LEN_PLUS_TAG, SIG_LEN_PLUS_TAG,
+    InstructionCode, ADDRESS_LEN, CLA, ED25519_PUBKEY_LEN, KEY_LENGTH, PK_LEN_PLUS_TAG, SIG_LEN_PLUS_TAG,
 };
-use utils::{ResponseAddress, ResponseSignature};
+use utils::{P1Values, ResponseAddress, ResponseSignature};
 
 use std::convert::TryInto;
 use std::str;
 
 mod utils;
 pub use utils::BIP44Path;
+pub use utils::{KeyResponse, NamadaKeys};
 
 /// Ledger App Error
 #[derive(Debug, thiserror::Error)]
@@ -137,11 +138,11 @@ where
         let (_public_key, rest) = rest.split_at((*public_key_len).into());
         let (address_len, rest) = rest.split_first().expect("response too short");
         let (address_bytes, rest) = rest.split_at((*address_len).into());
-        if rest.len() > 0 {
+        if !rest.is_empty() {
             panic!("response too long");
         }
 
-        let address_str = str::from_utf8(&address_bytes)
+        let address_str = str::from_utf8(address_bytes)
             .map_err(|_| LedgerAppError::Utf8)?
             .to_owned();
 
@@ -150,6 +151,91 @@ where
             address_bytes: address_bytes.try_into().unwrap(),
             address_str,
         })
+    }
+
+    /// Retrieves the public key and address
+    pub async fn retrieve_keys(
+        &self,
+        path: &BIP44Path,
+        key_type: NamadaKeys,
+        show_in_device: bool,
+    ) -> Result<KeyResponse, NamError<E::Error>> {
+        let serialized_path = path.serialize_path().unwrap();
+        let p1: u8 = if show_in_device {
+            P1Values::ShowAddressInDevice
+        } else {
+            P1Values::OnlyRetrieve
+        } as _;
+        let command = APDUCommand {
+            cla: CLA,
+            ins: InstructionCode::GetKeys as _,
+            p1,
+            p2: key_type as _,
+            data: serialized_path,
+        };
+
+        let response = self
+            .apdu_transport
+            .exchange(&command)
+            .await
+            .map_err(LedgerAppError::TransportError)?;
+
+        match response.error_code() {
+            Ok(APDUErrorCode::NoError) => {}
+            Ok(err) => {
+                return Err(NamError::Ledger(LedgerAppError::AppSpecific(
+                    err as _,
+                    err.description(),
+                )))
+            }
+            Err(err) => {
+                return Err(NamError::Ledger(LedgerAppError::AppSpecific(
+                    err,
+                    "[APDU_ERROR] Unknown".to_string(),
+                )))
+            }
+        }
+
+        let response_data = response.data();
+
+        match key_type {
+            NamadaKeys::PublicAddress => {
+                let (public_address, rest) = response_data.split_at(KEY_LENGTH);
+                if !rest.is_empty() {
+                    panic!("response too long");
+                }
+
+                Ok(KeyResponse::Address {
+                    public_address: public_address.try_into().unwrap(),
+                })
+            },
+            NamadaKeys::ViewKey => {
+                let (view_key, rest) = response_data.split_at(2*KEY_LENGTH);
+                let (ovk, rest) = rest.split_at(KEY_LENGTH);
+                let (ivk, rest) = rest.split_at(KEY_LENGTH);
+                if !rest.is_empty() {
+                    panic!("response too long");
+                }
+
+                Ok(KeyResponse::ViewKey {
+                    view_key: view_key.try_into().unwrap(),
+                    ovk: ovk.try_into().unwrap(),
+                    ivk: ivk.try_into().unwrap(),
+                })
+            },
+            NamadaKeys::ProofGenerationKey => {
+                let (ak, rest) = response_data.split_at(KEY_LENGTH);
+                let (nsk, rest) = rest.split_at(KEY_LENGTH);
+                if !rest.is_empty() {
+                    panic!("response too long");
+                }
+
+                Ok(KeyResponse::ProofGenKey {
+                    ak: ak.try_into().unwrap(),
+                    nsk: nsk.try_into().unwrap(),
+                })
+            },
+        }
     }
 
     /// Sign wrapper transaction
@@ -232,7 +318,7 @@ where
 
         hasher.update([0x01]);
 
-        hasher.update(&[pubkeys.len() as u8, 0, 0, 0]);
+        hasher.update([pubkeys.len() as u8, 0, 0, 0]);
         for pubkey in pubkeys {
             hasher.update(pubkey);
         }
@@ -260,7 +346,7 @@ where
     ) -> bool {
         use ed25519_dalek::{Signature, VerifyingKey};
 
-        if pubkey != &signature.pubkey {
+        if pubkey != signature.pubkey {
             return false;
         }
 

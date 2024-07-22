@@ -33,15 +33,26 @@ pub const SIG_LEN_PLUS_TAG: usize = ED25519_SIGNATURE_LEN + 1;
 /// Salt Length
 pub const SALT_LEN: usize = 8;
 /// Hash Length
-// pub const HASH_LEN: usize = 32;
+pub const KEY_LENGTH: usize = 32;
 /// Available instructions to interact with the Ledger device
 #[repr(u8)]
 pub enum InstructionCode {
+    /// Instruction to get app version
+    GetVersion = 0,
     /// Instruction to retrieve Pubkey and Address
     GetAddressAndPubkey = 1,
     /// Instruction to sign a transaction
     Sign = 2,
-
-    /// Instruction to retrieve a signed section
-    GetSignature = 0x0a,
+    /// Instruction to get keys
+    GetKeys = 3,
+    /// Instruction to get spend randomness
+    GetSpendRand = 4,
+    /// Instruction to get output randomness
+    GetOutputRand = 5,
+    /// Instruction to get convert randomness
+    GetConvertRand = 6,
+    /// Instruction to sign MASP transaction
+    SignMasp = 7,
+    /// Instruction to extract spend signature
+    ExtractSpendSign = 8,
 }

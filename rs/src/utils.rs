@@ -21,7 +21,7 @@ use std::error::Error;
 
 const HARDENED: u32 = 0x80000000;
 
-use crate::params::{ADDRESS_LEN, ED25519_PUBKEY_LEN, PK_LEN_PLUS_TAG, SALT_LEN, SIG_LEN_PLUS_TAG};
+use crate::params::{ADDRESS_LEN, ED25519_PUBKEY_LEN, KEY_LENGTH, PK_LEN_PLUS_TAG, SALT_LEN, SIG_LEN_PLUS_TAG};
 use byteorder::{LittleEndian, WriteBytesExt};
 
 pub struct ResponseAddress {
@@ -54,12 +54,12 @@ impl BIP44Path {
     pub fn serialize_path(&self) -> Result<Vec<u8>, Box<dyn Error>> {
         if !self.path.starts_with('m') {
             return Err(
-                format!("Path should start with \"m\" (e.g \"m/44'/5757'/5'/0/3\")").into(),
+                "Path should start with \"m\" (e.g \"m/44'/5757'/5'/0/3\")".to_string().into(),
             );
         }
 
         let path_array: Vec<&str> = self.path.split('/').collect();
-        if path_array.len() != 6 {
+        if path_array.len() != 4 && path_array.len() != 6 {
             return Err("Invalid path. (e.g \"m/44'/134'/0/0/0\"".into());
         }
 
@@ -69,10 +69,9 @@ impl BIP44Path {
             .write_u8((path_array.len() - 1) as u8)
             .unwrap();
 
-        for i in 1..path_array.len() {
+        for mut child in path_array.iter().skip(1).copied() {
             let mut value = 0;
-            let mut child = path_array[i];
-            if child.ends_with("'") {
+            if child.ends_with('\'') {
                 value += HARDENED;
                 child = &child[..child.len() - 1];
             }
@@ -89,6 +88,51 @@ impl BIP44Path {
         Ok(serialized_path)
     }
 }
+
+/// Kinds of keys that can be requested in get keys instruction
+#[derive(Copy, Clone)]
+pub enum NamadaKeys {
+    /// Public address request
+    PublicAddress = 0x00,
+    /// Viewing key request
+    ViewKey = 0x01,
+    /// Proof generation key request
+    ProofGenerationKey = 0x02,
+}
+
+/// Kinds of data retrieval
+pub enum P1Values {
+    /// Request data without displaying it
+    OnlyRetrieve = 0x00,
+    /// Retrieve data whilst showing on screen
+    ShowAddressInDevice = 0x01,
+}
+
+/// Response to the get keys instruction
+pub enum KeyResponse {
+    /// Address response
+    Address {
+        /// Public address
+        public_address: [u8; KEY_LENGTH],
+    },
+    /// Viewing key responsee
+    ViewKey {
+        /// Viewing key
+        view_key: [u8; KEY_LENGTH*2],
+        /// Incoming viewing key
+        ivk: [u8; KEY_LENGTH],
+        /// Outgoing viewing key
+        ovk: [u8; KEY_LENGTH],
+    },
+    /// Proof generation key response
+    ProofGenKey {
+        /// Spend authorization address key
+        ak: [u8; KEY_LENGTH],
+        /// Nullifier private key
+        nsk: [u8; KEY_LENGTH],
+    },
+}
+
 
 #[cfg(test)]
 mod tests {
