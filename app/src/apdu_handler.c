@@ -39,22 +39,28 @@ __Z_INLINE void extractHDPath(uint32_t rx, uint32_t offset) {
     ZEMU_LOGF(50, "Extract HDPath\n")
     tx_initialized = false;
 
-    const uint8_t pathLength = G_io_apdu_buffer[offset];
+    hdPathLen = G_io_apdu_buffer[offset];
     offset++;
 
-    if (pathLength != HDPATH_LEN_DEFAULT || (rx - offset) != sizeof(uint32_t) * pathLength) {
+    if ((hdPathLen != HDPATH_LEN_DEFAULT && hdPathLen != IDENTITY_DER_PATH_LEN) || (rx - offset) != sizeof(uint32_t) * hdPathLen) {
         THROW(APDU_CODE_WRONG_LENGTH);
     }
 
-    memcpy(hdPath, G_io_apdu_buffer + offset, sizeof(uint32_t) * HDPATH_LEN_DEFAULT);
+    memcpy(hdPath, G_io_apdu_buffer + offset, sizeof(uint32_t) * hdPathLen);
 
-    const bool mainnet = hdPath[0] == HDPATH_0_DEFAULT &&
+    const bool default_mainnet = hdPath[0] == HDPATH_0_DEFAULT &&
                          hdPath[1] == HDPATH_1_DEFAULT;
 
-    const bool testnet = hdPath[0] == HDPATH_0_DEFAULT &&
+    const bool default_testnet = hdPath[0] == HDPATH_0_DEFAULT &&
                          hdPath[1] == HDPATH_1_TESTNET;
 
-    if (!mainnet && !testnet) {
+    const bool identity_mainnet = hdPath[0] == HDPATH_0_IDENTITY &&
+                         hdPath[1] == HDPATH_1_DEFAULT;
+
+    const bool identity_testnet = hdPath[0] == HDPATH_0_IDENTITY &&
+                         hdPath[1] == HDPATH_1_TESTNET;
+
+    if (!default_mainnet && !default_testnet && !identity_mainnet && !identity_testnet) {
         THROW(APDU_CODE_DATA_INVALID);
     }
 }

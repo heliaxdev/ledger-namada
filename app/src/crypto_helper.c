@@ -52,6 +52,7 @@
 #include "blake2.h"
 
 uint32_t hdPath[HDPATH_LEN_DEFAULT];
+uint8_t hdPathLen;
 
 uint8_t bech32_hrp_len;
 char bech32_hrp[MAX_BECH32_HRP_LEN + 1];
