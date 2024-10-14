@@ -174,8 +174,8 @@ static parser_error_t printTransferTxn( const parser_context_t *ctx,
     // Get pointer to the outputs
     bytes_t out = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.outputs;
     // Compute number of spends/outs in the builder tx , and number of itemns to be printer for each
-    uint32_t n_spends = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends * (uint32_t) ctx->tx_obj->transaction.isMasp;
-    uint32_t n_outs = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs * (uint32_t) ctx->tx_obj->transaction.isMasp;
+    uint32_t n_spends = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends * (uint32_t) ctx->tx_obj->transfer.has_shielded_hash;
+    uint32_t n_outs = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs * (uint32_t) ctx->tx_obj->transfer.has_shielded_hash;
     uint16_t spend_index = 0;
     uint16_t out_index = 0;
 
@@ -1132,8 +1132,8 @@ static parser_error_t printIBCTxn( const parser_context_t *ctx,
     // Get pointer to the outputs
     bytes_t out = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.outputs;
     // Compute number of spends/outs in the builder tx , and number of itemns to be printer for each
-    uint32_t n_spends = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends * (uint32_t) ctx->tx_obj->transaction.isMasp;
-    uint32_t n_outs = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs * (uint32_t) ctx->tx_obj->transaction.isMasp;
+    uint32_t n_spends = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends * (uint32_t) ctx->tx_obj->ibc.transfer.has_shielded_hash;
+    uint32_t n_outs = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs * (uint32_t) ctx->tx_obj->ibc.transfer.has_shielded_hash;
     uint16_t spend_index = 0;
     uint16_t out_index = 0;
 
@@ -1445,8 +1445,8 @@ static parser_error_t printNFTIBCTxn( const parser_context_t *ctx,
     // Get pointer to the outputs
     bytes_t out = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.outputs;
     // Compute number of spends/outs in the builder tx , and number of itemns to be printer for each
-    uint32_t n_spends = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends * (uint32_t) ctx->tx_obj->transaction.isMasp;
-    uint32_t n_outs = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs * (uint32_t) ctx->tx_obj->transaction.isMasp;
+    uint32_t n_spends = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends * (uint32_t) ctx->tx_obj->ibc.transfer.has_shielded_hash;
+    uint32_t n_outs = ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs * (uint32_t) ctx->tx_obj->ibc.transfer.has_shielded_hash;
     uint16_t spend_index = 0;
     uint16_t out_index = 0;
 

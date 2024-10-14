@@ -411,7 +411,7 @@ zxerr_t crypto_sign(const parser_tx_t *txObj, uint8_t *output, uint16_t outputLe
     signature_section.hashes.hashesLen += 2;
 
     // Include Masp hash in the signature if it's there
-    if (txObj->transaction.isMasp) {
+    if ((txObj->typeTx == Transfer && txObj->transfer.has_shielded_hash) || (txObj->typeTx == IBC && txObj->ibc.transfer.has_shielded_hash)) {
 #if !defined(APP_TESTING)
         if (get_state() != STATE_EXTRACT_SPENDS) {
             return zxerr_unknown;
