@@ -280,7 +280,8 @@ typedef struct {
     header_t header;
     sections_t sections;
     uint8_t maspTx_idx;
-    bool isMasp;
+    bool hasMaspTx;
+    bool hasMaspBuilder;
 } transaction_t;
 
 

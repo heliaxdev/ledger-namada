@@ -27,9 +27,7 @@ parser_error_t _read(parser_context_t *ctx, parser_tx_t *v) {
 
     CHECK_ERROR(validateTransactionParams(v))
 
-    if(ctx->tx_obj->transaction.isMasp || ctx->tx_obj->ibc.is_ibc) {
-        CHECK_ERROR(verifyShieldedHash(ctx))
-    }
+    CHECK_ERROR(verifyShieldedHash(ctx))
 
     if (ctx->offset != ctx->bufferLen) {
         return parser_unexpected_unparsed_bytes;
@@ -51,7 +49,7 @@ parser_error_t getNumItems(const parser_context_t *ctx, uint8_t *numItems) {
             break;
 
         case Transfer:
-            if(ctx->tx_obj->transaction.isMasp) {
+            if(ctx->tx_obj->transfer.has_shielded_hash) {
                 uint8_t items = 1;
                 items += 3 * ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs; // print from outputs
                 items += 3 * ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends; // print from spends
@@ -130,7 +128,7 @@ parser_error_t getNumItems(const parser_context_t *ctx, uint8_t *numItems) {
 
         case IBC:
             *numItems = (app_mode_expert() ?  IBC_EXPERT_PARAMS : IBC_NORMAL_PARAMS);
-            if(ctx->tx_obj->transaction.isMasp) {
+            if(ctx->tx_obj->ibc.transfer.has_shielded_hash) {
                 *numItems += 3 * ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_outputs; // print from outputs
                 *numItems += 3 * ctx->tx_obj->transaction.sections.maspBuilder.builder.sapling_builder.n_spends; // print from spends
             }

@@ -413,7 +413,7 @@ zxerr_t crypto_sign(const parser_tx_t *txObj, uint8_t *output, uint16_t outputLe
     signature_section.hashes.hashesLen += 2;
 
     // Include Masp hash in the signature if it's there
-    if (txObj->transaction.isMasp) {
+    if ((txObj->typeTx == Transfer && txObj->transfer.has_shielded_hash) || (txObj->typeTx == IBC && txObj->ibc.transfer.has_shielded_hash)) {
         const uint8_t *maspSection = txObj->transaction.sections.maspTx.masptx_ptr;
         uint64_t maspSectionLen = txObj->transaction.sections.maspTx.masptx_len;
         uint8_t *maspHash = section_hashes.hashes.ptr + (section_hashes.hashesLen * HASH_LEN);
