@@ -1255,7 +1255,8 @@ parser_error_t readSections(parser_context_t *ctx, parser_tx_t *v) {
     if (v->transaction.sections.sectionLen > 7) {
         return parser_invalid_output_buffer;
     }
-    v->transaction.isMasp = false;
+    v->transaction.hasMaspTx = false;
+    v->transaction.hasMaspBuilder = false;
     v->transaction.sections.extraDataLen = 0;
     v->transaction.sections.signaturesLen = 0;
 
@@ -1296,11 +1297,12 @@ parser_error_t readSections(parser_context_t *ctx, parser_tx_t *v) {
 #if defined(COMPILE_MASP)
             case DISCRIMINANT_MASP_TX:
                 // Identify tx has masp tx
-                v->transaction.isMasp = true;
+                v->transaction.hasMaspTx = true;
                 CHECK_ERROR(readMaspTx(ctx, &v->transaction.sections.maspTx))
                 v->transaction.maspTx_idx = i+1;
                 break;
             case DISCRIMINANT_MASP_BUILDER:
+                v->transaction.hasMaspBuilder = true;
                 CHECK_ERROR(readMaspBuilder(ctx, &v->transaction.sections.maspBuilder))
                 break;
 #endif
@@ -1421,24 +1423,36 @@ parser_error_t verifyShieldedHash(parser_context_t *ctx) {
     }
 
 #if defined(LEDGER_SPECIFIC)
-    // compute tx_id hash
     uint8_t tx_id_hash[HASH_LEN] = {0};
-    if (tx_hash_txId(ctx->tx_obj, tx_id_hash) != zxerr_ok) {
-        return parser_unexpected_error;
-    }
-
-    if (ctx->tx_obj->transaction.sections.maspBuilder.target_hash.len == HASH_LEN) {
-        if (memcmp(tx_id_hash, ctx->tx_obj->transaction.sections.maspBuilder.target_hash.ptr, HASH_LEN) != 0) {
+    if (ctx->tx_obj->transaction.hasMaspTx) {
+        if (!ctx->tx_obj->transaction.hasMaspBuilder) {
+            // MASP Trabsactions must be accompanied by MASP Builders
+            return parser_unexpected_error;
+        } else if (tx_hash_txId(ctx->tx_obj, tx_id_hash) != zxerr_ok) {
+            // compute tx_id hash
+            return parser_unexpected_error;
+        } else if (memcmp(tx_id_hash, ctx->tx_obj->transaction.sections.maspBuilder.target_hash.ptr, HASH_LEN) != 0) {
+            // MASP Builder must have the correct TxId
             return parser_invalid_target_hash;
         }
     }
 
-    if (ctx->tx_obj->transfer.has_shielded_hash && memcmp(ctx->tx_obj->transfer.shielded_hash.ptr, tx_id_hash, HASH_LEN) != 0) {
-        return parser_invalid_target_hash;
-    }
-
-    if(ctx->tx_obj->ibc.transfer.has_shielded_hash && memcmp(ctx->tx_obj->ibc.transfer.shielded_hash.ptr, tx_id_hash, HASH_LEN) != 0) {
-        return parser_invalid_target_hash;
+    if (ctx->tx_obj->typeTx == Transfer && ctx->tx_obj->transfer.has_shielded_hash) {
+        if (!ctx->tx_obj->transaction.hasMaspTx) {
+            // MASP transfers must be accompanied by MASP Transactions
+            return parser_unexpected_error;
+        } else if (memcmp(ctx->tx_obj->transfer.shielded_hash.ptr, tx_id_hash, HASH_LEN) != 0) {
+            // MASP Transactions must have the correct TxId
+            return parser_invalid_target_hash;
+        }
+    } else if (ctx->tx_obj->typeTx == IBC && ctx->tx_obj->ibc.transfer.has_shielded_hash) {
+        if (!ctx->tx_obj->transaction.hasMaspTx) {
+            // IBC MASP transfers must be accompanied by MASP Transactions
+            return parser_unexpected_error;
+        } else if (memcmp(ctx->tx_obj->ibc.transfer.shielded_hash.ptr, tx_id_hash, HASH_LEN) != 0) {
+            // MASP Transactions must have the correct TxId
+            return parser_invalid_target_hash;
+        }
     }
 #endif
 
