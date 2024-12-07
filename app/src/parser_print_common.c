@@ -159,9 +159,12 @@ parser_error_t printAmount( const bytes_t *amount, bool isSigned, uint8_t amount
     if (insertDecimalPoint(strAmount + isNegative, sizeof(strAmount) - isNegative, amountDenom) != zxerr_ok) {
         return parser_unexpected_error;
     }
-    //const char *suffix = (amountDenom == 0) ? ".0" : "";
     z_str3join(strAmount, sizeof(strAmount), symbol, "");
-    number_inplace_trimming(strAmount, 1);
+    number_inplace_trimming(strAmount, 0);
+    const size_t len = strlen(strAmount);
+    if (len > 0 && strAmount[len-1] == '.') {
+        strAmount[len-1] = 0;
+    }
     pageString(outVal, outValLen, strAmount, pageIdx, pageCount);
 
     return parser_ok;
