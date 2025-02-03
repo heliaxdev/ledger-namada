@@ -1,11 +1,11 @@
 [package]
-name = "ledger-namada-rs"
-description = "Library to integrate with the Ledger Namada app"
-version = "0.0.1"
+name = "nam-ledger-namada-rs"
+description = "(Namada fork) Library to integrate with the Ledger Namada app"
+version = "0.0.1-nam.0"
 license = "Apache-2.0"
 authors = ["Zondax AG <info@zondax.ch>"]
-homepage = "https://github.com/ZondaX/ledger-namada"
-repository = "https://github.com/ZondaX/ledger-namada"
+homepage = "https://github.com/heliaxdev/ledger-namada"
+repository = "https://github.com/heliaxdev/ledger-namada"
 readme = "README.md"
 categories  = ["authentication", "cryptography"]
 keywords = ["ledger", "nano", "apdu", "namada"]

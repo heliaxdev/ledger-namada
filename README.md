@@ -2,6 +2,8 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GithubActions](https://github.com/Zondax/ledger-namada/actions/workflows/main.yml/badge.svg)](https://github.com/Zondax/ledger-namada/blob/main/.github/workflows/main.yaml)
 
+⚠️ This is a temporary fork with a sole purpose of getting the Rust library onto crates.io. Do not use this repository to install the Ledger app.
+
 ---
 
 ![zondax_light](docs/zondax_light.png#gh-light-mode-only)
